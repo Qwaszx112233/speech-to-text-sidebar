@@ -433,22 +433,42 @@ body {
   gap: var(--space-4);
 }
 
+/* === Улучшенные стили для конфигурационных карточек === */
 .config-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   backdrop-filter: blur(10px);
   transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+}
+
+.config-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+  transition: left 0.6s;
+}
+
+.config-card:hover::before {
+  left: 100%;
 }
 
 .config-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15));
+  border-color: rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.25);
 }
 
 .config-label {
@@ -456,44 +476,90 @@ body {
   align-items: center;
   gap: var(--space-3);
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 700;
+  color: var(--text-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .label-icon {
   font-size: 14px;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
+/* Улучшенные стили для выпадающих списков */
 .modern-select {
-  padding: 10px 12px;
-  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border: 1px solid rgba(99, 102, 241, 0.4);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(15, 15, 31, 0.95);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
   font-family: inherit;
   transition: var(--transition);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
+  background-position: right 16px center;
   background-size: 16px;
-  padding-right: 36px;
+  padding-right: 44px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .modern-select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  background-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 8px 24px rgba(99, 102, 241, 0.3);
+  background-color: rgba(15, 15, 31, 0.95);
+}
+
+.modern-select:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.25);
+}
+
+/* Исправление для выпадающих списков - темный фон и белый текст */
+.modern-select option {
+  background: var(--background);
+  color: var(--text-primary);
+  padding: 12px 8px;
+  font-size: 14px;
+  border: none;
+  margin: 4px 0;
+}
+
+.modern-select option:hover,
+.modern-select option:focus,
+.modern-select option:checked {
+  background: var(--primary);
+  color: white;
+}
+
+/* Стили для скроллбара в выпадающем списке */
+.modern-select::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modern-select::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.modern-select::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+.modern-select::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
 }
 
 /* === Status Section === */
@@ -894,6 +960,38 @@ body {
   display: flex;
   align-items: center;
   gap: 3px;
+}
+
+/* === Советы по записи === */
+.recording-tips {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(10px);
+}
+
+.tip-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.tip-icon {
+    font-size: 14px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
 }
 
 .wave-bar {

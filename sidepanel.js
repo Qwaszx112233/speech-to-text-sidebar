@@ -308,6 +308,49 @@ class SpeechToTextPro {
             this.showError(`Не удалось начать запись: ${error.message}`);
         }
     }
+    async startRecording() {
+    if (this.isRecording) return;
+
+    if (!this.microphoneAccessGranted) {
+        const hasAccess = await this.checkMicrophonePermission();
+        if (!hasAccess) return;
+    }
+
+    try {
+        // Сброс предыдущего распознавания
+        if (this.recognition) {
+            this.recognition.onend = null;
+            this.recognition.stop();
+        }
+
+        if (!this.initializeRecognition()) {
+            return;
+        }
+
+        this.finalTranscript = this.output.value || '';
+        this.recognition.lang = this.languageSelect.value;
+        
+        // Небольшая задержка для стабильности
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        this.recognition.start();
+        this.saveSettings();
+        this.hideInstructions();
+        
+    } catch (error) {
+        console.error('Ошибка запуска записи:', error);
+        this.showError(`Не удалось начать запись: ${error.message}`);
+        
+        // Попытка восстановления
+        if (this.isRecording) {
+            setTimeout(() => {
+                if (this.isRecording) {
+                    this.recognition.start();
+                }
+            }, 1000);
+        }
+    }
+}
 
     stopRecording() {
         if (this.recognition && this.isRecording) {
