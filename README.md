@@ -1,0 +1,1 @@
+# speech-to-text-extension_sidebar
