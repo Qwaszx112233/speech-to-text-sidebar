@@ -10,7 +10,8 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 
     // Устанавливаем боковую панель по умолчанию
-    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+        .catch(error => console.log('Side panel error:', error));
 });
 
 // Обработка горячих клавиш
@@ -18,19 +19,22 @@ chrome.commands.onCommand.addListener((command) => {
     if (command === "start_recording") {
         chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
             if (tabs[0]) {
-                chrome.tabs.sendMessage(tabs[0].id, {action: "startRecording"});
+                chrome.tabs.sendMessage(tabs[0].id, {action: "startRecording"})
+                    .catch(error => console.log('Start recording error:', error));
             }
         });
     } else if (command === "stop_recording") {
         chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
             if (tabs[0]) {
-                chrome.tabs.sendMessage(tabs[0].id, {action: "stopRecording"});
+                chrome.tabs.sendMessage(tabs[0].id, {action: "stopRecording"})
+                    .catch(error => console.log('Stop recording error:', error));
             }
         });
     } else if (command === "toggle_side_panel") {
         chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
             if (tabs[0]) {
-                chrome.sidePanel.open({ tabId: tabs[0].id });
+                chrome.sidePanel.open({ tabId: tabs[0].id })
+                    .catch(error => console.log('Toggle side panel error:', error));
             }
         });
     }
@@ -39,13 +43,15 @@ chrome.commands.onCommand.addListener((command) => {
 // Обработка контекстного меню
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === "voiceToText") {
-        chrome.sidePanel.open({ tabId: tab.id });
+        chrome.sidePanel.open({ tabId: tab.id })
+            .catch(error => console.log('Context menu error:', error));
     }
 });
 
 // Обработка клика по иконке расширения
 chrome.action.onClicked.addListener((tab) => {
-    chrome.sidePanel.open({ tabId: tab.id });
+    chrome.sidePanel.open({ tabId: tab.id })
+        .catch(error => console.log('Action click error:', error));
 });
 
 // Обработка сообщений от sidepanel
@@ -55,7 +61,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.sidePanel.setOptions({
                 tabId: sender.tab.id,
                 enabled: false
-            });
+            }).catch(error => console.log('Close side panel error:', error));
         }
     }
 });
@@ -83,7 +89,9 @@ chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
             'docs.google.com',
             'notion.so',
             'figma.com',
-            'miro.com'
+            'miro.com',
+            'chat.openai.com',
+            'discord.com'
         ];
         
         if (allowedSites.some(site => tab.url.includes(site))) {
@@ -91,7 +99,7 @@ chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
                 tabId,
                 path: 'sidepanel.html',
                 enabled: true
-            });
+            }).catch(error => console.log('Auto-open error:', error));
         }
     }
 });

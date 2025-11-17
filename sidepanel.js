@@ -8,6 +8,7 @@ class SpeechToTextPro {
         this.recordingTimer = null;
         this.spellCheckEnabled = false;
         this.autoPunctuationLevel = 'medium';
+        this.sessionWordCount = 0;
         
         this.initializeElements();
         this.setupEventListeners();
@@ -15,6 +16,7 @@ class SpeechToTextPro {
         this.checkBrowserSupport();
         this.setupSpellCheck();
         this.updateStats();
+        this.updateEditorOverlay();
     }
 
     initializeElements() {
@@ -26,9 +28,13 @@ class SpeechToTextPro {
         this.closeBtn = document.getElementById('closeBtn');
         this.output = document.getElementById('output');
         this.status = document.getElementById('status');
+        this.statusCard = document.getElementById('statusCard');
+        this.recordingTime = document.getElementById('recordingTime');
+        this.timeCount = document.getElementById('timeCount');
         this.languageSelect = document.getElementById('language');
         this.autoPunctuationSelect = document.getElementById('autoPunctuation');
         this.instructions = document.getElementById('instructions');
+        this.editorOverlay = document.getElementById('editorOverlay');
 
         // Элементы панели инструментов
         this.spellCheckBtn = document.getElementById('spellCheckBtn');
@@ -38,7 +44,7 @@ class SpeechToTextPro {
         // Элементы статистики
         this.wordCount = document.getElementById('wordCount');
         this.charCount = document.getElementById('charCount');
-        this.timeCount = document.getElementById('timeCount');
+        this.sessionStats = document.getElementById('sessionStats');
     }
 
     setupEventListeners() {
@@ -62,7 +68,7 @@ class SpeechToTextPro {
         this.punctuateBtn.addEventListener('click', () => this.autoPunctuate());
 
         // Кнопки форматирования текста
-        document.querySelectorAll('.toolbar-btn[data-command]').forEach(btn => {
+        document.querySelectorAll('.tool-btn[data-command]').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.executeCommand(btn.dataset.command);
             });
@@ -75,6 +81,7 @@ class SpeechToTextPro {
         this.output.addEventListener('input', () => {
             this.updateStats();
             this.saveTextDraft();
+            this.updateEditorOverlay();
         });
 
         // Автосохранение при закрытии
@@ -82,31 +89,25 @@ class SpeechToTextPro {
     }
 
     handleHotkeys(e) {
-        if (e.ctrlKey || e.metaKey) {
+        if ((e.ctrlKey || e.metaKey) && !e.altKey) {
             switch(e.key) {
                 case '1':
-                    if (e.shiftKey) {
-                        e.preventDefault();
-                        this.startRecording();
-                    }
+                    e.preventDefault();
+                    this.startRecording();
                     break;
                 case '2':
-                    if (e.shiftKey) {
-                        e.preventDefault();
-                        this.stopRecording();
-                    }
+                    e.preventDefault();
+                    this.stopRecording();
                     break;
                 case 'c':
-                    if (!e.shiftKey && document.activeElement !== this.output) {
+                    if (document.activeElement !== this.output) {
                         e.preventDefault();
                         this.copyToClipboard();
                     }
                     break;
                 case 'Delete':
-                    if (!e.shiftKey) {
-                        e.preventDefault();
-                        this.clearText();
-                    }
+                    e.preventDefault();
+                    this.clearText();
                     break;
                 case 'b':
                     e.preventDefault();
@@ -133,6 +134,7 @@ class SpeechToTextPro {
     executeCommand(command) {
         this.output.focus();
         document.execCommand(command, false, null);
+        this.updateStats();
     }
 
     async checkMicrophonePermission() {
@@ -141,7 +143,8 @@ class SpeechToTextPro {
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
-                    autoGainControl: true
+                    autoGainControl: true,
+                    sampleRate: 44100
                 }
             });
             
@@ -187,7 +190,8 @@ class SpeechToTextPro {
                 this.recordingStartTime = Date.now();
                 this.startRecordingTimer();
                 this.updateUI();
-                this.showStatus(`🎤 Запись... Говорите четко`, 'recording');
+                this.showStatus('Идет запись... Говорите четко', 'recording');
+                this.updateEditorOverlay();
             };
 
             this.recognition.onresult = (event) => {
@@ -208,6 +212,7 @@ class SpeechToTextPro {
                 const displayText = this.finalTranscript + interimTranscript;
                 this.output.value = displayText;
                 this.updateStats();
+                this.updateEditorOverlay();
                 this.output.scrollTop = this.output.scrollHeight;
             };
 
@@ -217,10 +222,10 @@ class SpeechToTextPro {
                 if (event.error === 'not-allowed') {
                     this.showError('Доступ к микрофону запрещен', true);
                 } else if (event.error === 'no-speech') {
-                    this.showStatus('🔇 Речь не обнаружена. Продолжайте говорить...', 'warning');
+                    this.showStatus('Речь не обнаружена. Продолжайте говорить...', 'warning');
                     return;
                 } else {
-                    this.showError(`Ошибка: ${event.error}`);
+                    this.showError(`Ошибка распознавания: ${event.error}`);
                 }
                 
                 this.stopRecording();
@@ -311,7 +316,8 @@ class SpeechToTextPro {
             this.recognition = null;
             this.stopRecordingTimer();
             this.updateUI();
-            this.showStatus('⏹️ Запись остановлена', 'info');
+            this.showStatus('Запись остановлена', 'success');
+            this.updateEditorOverlay();
         }
     }
 
@@ -319,7 +325,9 @@ class SpeechToTextPro {
         this.stopRecordingTimer();
         this.recordingTimer = setInterval(() => {
             const elapsed = Math.floor((Date.now() - this.recordingStartTime) / 1000);
-            this.timeCount.textContent = `⏱️ ${elapsed}с`;
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            this.timeCount.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }, 1000);
     }
 
@@ -338,7 +346,7 @@ class SpeechToTextPro {
 
         navigator.clipboard.writeText(this.output.value)
             .then(() => {
-                this.showStatus('✅ Текст скопирован!', 'success');
+                this.showStatus('Текст скопирован в буфер обмена', 'success');
             })
             .catch(err => {
                 this.showError('Ошибка копирования: ' + err);
@@ -346,17 +354,19 @@ class SpeechToTextPro {
     }
 
     clearText() {
-        this.output.value = '';
-        this.finalTranscript = '';
-        this.updateStats();
-        this.showStatus('🗑️ Текст очищен', 'info');
+        if (this.output.value.trim()) {
+            if (confirm('Очистить весь текст?')) {
+                this.output.value = '';
+                this.finalTranscript = '';
+                this.updateStats();
+                this.updateEditorOverlay();
+                this.showStatus('Текст очищен', 'info');
+            }
+        }
     }
 
     closePanel() {
-        // Сохраняем настройки перед закрытием
         this.saveSettings();
-        
-        // Закрываем боковую панель
         chrome.runtime.sendMessage({action: "closeSidePanel"});
     }
 
@@ -364,10 +374,9 @@ class SpeechToTextPro {
         this.spellCheckEnabled = !this.spellCheckEnabled;
         this.output.spellcheck = this.spellCheckEnabled;
         this.spellCheckBtn.classList.toggle('active', this.spellCheckEnabled);
-        this.output.classList.toggle('spell-check-enabled', this.spellCheckEnabled);
         
         this.showStatus(
-            this.spellCheckEnabled ? '🔤 Проверка орфографии включена' : '🔤 Проверка орфографии выключена',
+            this.spellCheckEnabled ? 'Проверка орфографии включена' : 'Проверка орфографии выключена',
             'info'
         );
     }
@@ -382,6 +391,11 @@ class SpeechToTextPro {
     formatText() {
         let text = this.output.value;
         
+        if (!text.trim()) {
+            this.showStatus('Нет текста для форматирования', 'warning');
+            return;
+        }
+
         text = text
             .replace(/\s+/g, ' ')
             .replace(/([.!?])\s*/g, '$1 ')
@@ -397,12 +411,17 @@ class SpeechToTextPro {
 
         this.output.value = text;
         this.updateStats();
-        this.showStatus('✨ Текст отформатирован', 'success');
+        this.showStatus('Текст отформатирован', 'success');
     }
 
     autoPunctuate() {
         let text = this.output.value;
         
+        if (!text.trim()) {
+            this.showStatus('Нет текста для расстановки знаков препинания', 'warning');
+            return;
+        }
+
         const sentences = text.split(/(?<=[.!?])\s+/);
         const punctuated = sentences.map(sentence => {
             if (sentence.length === 0) return '';
@@ -424,7 +443,7 @@ class SpeechToTextPro {
 
         this.output.value = punctuated;
         this.updateStats();
-        this.showStatus('🔠 Знаки препинания расставлены', 'success');
+        this.showStatus('Знаки препинания расставлены', 'success');
     }
 
     updateStats() {
@@ -432,8 +451,17 @@ class SpeechToTextPro {
         const words = text.trim() ? text.trim().split(/\s+/).length : 0;
         const characters = text.length;
         
-        this.wordCount.textContent = `📝 ${words} слов`;
-        this.charCount.textContent = `🔤 ${characters} симв.`;
+        this.wordCount.textContent = `${words} слов`;
+        this.charCount.textContent = `${characters} симв.`;
+        this.sessionStats.innerHTML = `<span>Сессия: ${words} слов</span>`;
+    }
+
+    updateEditorOverlay() {
+        if (this.output.value.trim()) {
+            this.editorOverlay.classList.add('hidden');
+        } else {
+            this.editorOverlay.classList.remove('hidden');
+        }
     }
 
     updateUI() {
@@ -441,34 +469,47 @@ class SpeechToTextPro {
         this.stopBtn.disabled = !this.isRecording;
         
         if (this.isRecording) {
-            this.startBtn.innerHTML = '🔴 Запись...<div class="hotkey">Ctrl+Shift+1</div>';
+            this.recordingTime.style.display = 'flex';
+            this.statusCard.classList.add('recording');
         } else {
-            this.startBtn.innerHTML = '🎤 Запись<div class="hotkey">Ctrl+Shift+1</div>';
+            this.recordingTime.style.display = 'none';
+            this.statusCard.classList.remove('recording');
         }
     }
 
     showError(message, showInstructions = false) {
-        this.status.textContent = `❌ ${message}`;
-        this.status.className = 'status error';
+        this.status.textContent = message;
+        this.statusCard.classList.add('error');
         this.isRecording = false;
         this.updateUI();
         
         if (showInstructions) {
             this.showInstructions();
         }
+        
+        setTimeout(() => {
+            this.statusCard.classList.remove('error');
+        }, 5000);
     }
 
     showStatus(message, type = 'info') {
-        const icons = {
-            info: 'ℹ️',
-            success: '✅',
-            warning: '⚠️',
-            error: '❌',
-            recording: '🎤'
-        };
+        this.status.textContent = message;
         
-        this.status.textContent = `${icons[type] || ''} ${message}`;
-        this.status.className = `status ${type}`;
+        // Убираем все классы статусов
+        this.statusCard.classList.remove('recording', 'success', 'warning', 'error');
+        
+        if (type !== 'info') {
+            this.statusCard.classList.add(type);
+        }
+        
+        if (type !== 'recording') {
+            setTimeout(() => {
+                if (!this.isRecording) {
+                    this.statusCard.classList.remove(type);
+                    this.status.textContent = 'Готов к записи';
+                }
+            }, 3000);
+        }
     }
 
     showInstructions() {
@@ -492,7 +533,7 @@ class SpeechToTextPro {
         clearTimeout(this.saveTimeout);
         this.saveTimeout = setTimeout(() => {
             chrome.storage.local.set({ textDraft: this.output.value });
-        }, 5000);
+        }, 2000);
     }
 
     loadSavedSettings() {
@@ -508,6 +549,7 @@ class SpeechToTextPro {
                 this.output.value = result.textDraft;
                 this.finalTranscript = result.textDraft;
                 this.updateStats();
+                this.updateEditorOverlay();
             }
         });
     }
